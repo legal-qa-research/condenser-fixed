@@ -34,6 +34,8 @@ from transformers import (
     set_seed, )
 from transformers.trainer_utils import is_main_process
 
+from utils.hf_dataset import HFDataset
+
 logger = logging.getLogger(__name__)
 
 CONDENSER_TYPE_MAP = {
@@ -95,14 +97,16 @@ def main():
     train_set = load_dataset(
         'json',
         data_files=data_args.train_path,
-        block_size=2**25,
+        block_size=2 ** 25,
     )['train']
+    train_set = HFDataset(train_set)
     dev_set = load_dataset(
         'json',
         data_files=data_args.validation_file,
-        block_size=2**25
+        block_size=2 ** 25
     )['train'] \
         if data_args.validation_file is not None else None
+    dev_set = HFDataset(dev_set)
 
     if model_args.config_name:
         config = AutoConfig.from_pretrained(model_args.config_name, cache_dir=model_args.cache_dir)
