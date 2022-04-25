@@ -19,11 +19,12 @@ import torch
 from torch import nn, Tensor
 import torch.distributed as dist
 import torch.nn.functional as F
-from transformers import BertModel, BertConfig, AutoModel, AutoModelForMaskedLM, AutoConfig, PretrainedConfig, \
-    RobertaModel
-from transformers.models.bert.modeling_bert import BertPooler, BertOnlyMLMHead, BertPreTrainingHeads, BertLayer
-from transformers.modeling_outputs import SequenceClassifierOutput, BaseModelOutputWithPooling, MaskedLMOutput
+from transformers import BertModel, AutoModelForMaskedLM, PretrainedConfig, \
+    RobertaModel, DistilBertModel
+from transformers.models.bert.modeling_bert import BertLayer
+from transformers.modeling_outputs import MaskedLMOutput
 from transformers.models.roberta.modeling_roberta import RobertaLayer
+from transformers.models.distilbert.modeling_distilbert import TransformerBlock
 
 from arguments import DataTrainingArguments, ModelArguments, CoCondenserPreTrainingArguments
 from transformers import TrainingArguments
@@ -42,8 +43,6 @@ class CondenserForPretraining(nn.Module):
     ):
         super(CondenserForPretraining, self).__init__()
         self.lm = bert
-        if self.lm.config.attention_probs_dropout_prob is None:
-            self.lm.config.attention_probs_dropout_prob = self.lm.attention_dropout
         self.c_head = nn.ModuleList(
             [BertLayer(bert.config) for _ in range(model_args.n_head_layers)]
         )
@@ -143,6 +142,36 @@ class RobertaCondenserForPretraining(CondenserForPretraining):
         self.lm = roberta
         self.c_head = nn.ModuleList(
             [RobertaLayer(roberta.config) for _ in range(model_args.n_head_layers)]
+        )
+        self.c_head.apply(self.lm._init_weights)
+        # self.mlm_head = BertOnlyMLMHead(bert.config)
+        self.cross_entropy = nn.CrossEntropyLoss()
+
+        self.model_args = model_args
+        self.train_args = train_args
+        self.data_args = data_args
+
+    def mlm_loss(self, hiddens, labels):
+        pred_scores = self.lm.lm_head(hiddens)
+        masked_lm_loss = self.cross_entropy(
+            pred_scores.view(-1, self.lm.config.vocab_size),
+            labels.view(-1)
+        )
+        return masked_lm_loss
+
+
+class DistilBERTCondenserForPretraining(CondenserForPretraining):
+    def __init__(
+            self,
+            distil_bert: DistilBertModel,
+            model_args: ModelArguments,
+            data_args: DataTrainingArguments,
+            train_args: TrainingArguments
+    ):
+        super(CondenserForPretraining, self).__init__()
+        self.lm = distil_bert
+        self.c_head = nn.ModuleList(
+            [TransformerBlock(distil_bert.config) for _ in range(model_args.n_head_layers)]
         )
         self.c_head.apply(self.lm._init_weights)
         # self.mlm_head = BertOnlyMLMHead(bert.config)
