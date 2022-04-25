@@ -23,8 +23,8 @@ from transformers import BertModel, AutoModelForMaskedLM, PretrainedConfig, \
     RobertaModel, DistilBertModel
 from transformers.models.bert.modeling_bert import BertLayer
 from transformers.modeling_outputs import MaskedLMOutput
-from transformers.models.roberta.modeling_roberta import RobertaLayer, RobertaForMaskedLM
-from transformers.models.distilbert.modeling_distilbert import TransformerBlock, DistilBertForMaskedLM
+from transformers.models.roberta.modeling_roberta import RobertaLayer
+from transformers.models.distilbert.modeling_distilbert import TransformerBlock
 
 from arguments import DataTrainingArguments, ModelArguments, CoCondenserPreTrainingArguments
 from transformers import TrainingArguments
@@ -182,7 +182,7 @@ class DistilBERTCondenserForPretraining(CondenserForPretraining):
         self.data_args = data_args
 
     def mlm_loss(self, hiddens, labels):
-        prediction_logits = self.vocab_transform(hiddens)  # (bs, seq_length, dim)
+        prediction_logits = self.lm.vocab_transform(hiddens)  # (bs, seq_length, dim)
         prediction_logits = F.gelu(prediction_logits)  # (bs, seq_length, dim)
         prediction_logits = self.vocab_layer_norm(prediction_logits)  # (bs, seq_length, dim)
         prediction_logits = self.vocab_projector(prediction_logits)  # (bs, seq_length, vocab_size)
