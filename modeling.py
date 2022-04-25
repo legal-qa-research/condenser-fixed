@@ -184,8 +184,8 @@ class DistilBERTCondenserForPretraining(CondenserForPretraining):
     def mlm_loss(self, hiddens, labels):
         prediction_logits = self.lm.vocab_transform(hiddens)  # (bs, seq_length, dim)
         prediction_logits = F.gelu(prediction_logits)  # (bs, seq_length, dim)
-        prediction_logits = self.vocab_layer_norm(prediction_logits)  # (bs, seq_length, dim)
-        prediction_logits = self.vocab_projector(prediction_logits)  # (bs, seq_length, vocab_size)
+        prediction_logits = self.lm.vocab_layer_norm(prediction_logits)  # (bs, seq_length, dim)
+        prediction_logits = self.lm.vocab_projector(prediction_logits)  # (bs, seq_length, vocab_size)
 
         # pred_scores = self.lm.lm_head(hiddens)
         masked_lm_loss = self.cross_entropy(
