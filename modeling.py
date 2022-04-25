@@ -34,14 +34,16 @@ logger = logging.getLogger(__name__)
 
 class CondenserForPretraining(nn.Module):
     def __init__(
-        self,
-        bert: BertModel,
-        model_args: ModelArguments,
-        data_args: DataTrainingArguments,
-        train_args: TrainingArguments
+            self,
+            bert: BertModel,
+            model_args: ModelArguments,
+            data_args: DataTrainingArguments,
+            train_args: TrainingArguments
     ):
         super(CondenserForPretraining, self).__init__()
         self.lm = bert
+        if self.lm.config.attention_probs_dropout_prob is None:
+            self.lm.config.attention_probs_dropout_prob = self.lm.attention_dropout
         self.c_head = nn.ModuleList(
             [BertLayer(bert.config) for _ in range(model_args.n_head_layers)]
         )
@@ -83,7 +85,6 @@ class CondenserForPretraining(nn.Module):
 
         return loss
 
-
     def mlm_loss(self, hiddens, labels):
         pred_scores = self.lm.lm_head(hiddens)
         masked_lm_loss = self.cross_entropy(
@@ -91,7 +92,6 @@ class CondenserForPretraining(nn.Module):
             labels.view(-1)
         )
         return masked_lm_loss
-
 
     @classmethod
     def from_pretrained(
@@ -130,6 +130,7 @@ class CondenserForPretraining(nn.Module):
         torch.save(model_dict, os.path.join(output_dir, 'model.pt'))
         torch.save([self.data_args, self.model_args, self.train_args], os.path.join(output_dir, 'args.pt'))
 
+
 class RobertaCondenserForPretraining(CondenserForPretraining):
     def __init__(
             self,
@@ -158,6 +159,7 @@ class RobertaCondenserForPretraining(CondenserForPretraining):
             labels.view(-1)
         )
         return masked_lm_loss
+
 
 class CoCondenserForPretraining(CondenserForPretraining):
     def __init__(
