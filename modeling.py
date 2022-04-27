@@ -21,7 +21,7 @@ import torch.distributed as dist
 import torch.nn.functional as F
 from transformers import BertModel, AutoModelForMaskedLM, PretrainedConfig, \
     RobertaModel, DistilBertModel
-from transformers.models.bert.modeling_bert import BertLayer
+from transformers.models.bert.modeling_bert import BertLayer, BertForMaskedLM
 from transformers.modeling_outputs import MaskedLMOutput
 from transformers.models.roberta.modeling_roberta import RobertaLayer
 from transformers.models.distilbert.modeling_distilbert import TransformerBlock
@@ -85,7 +85,7 @@ class CondenserForPretraining(nn.Module):
         return loss
 
     def mlm_loss(self, hiddens, labels):
-        pred_scores = self.lm.lm_head(hiddens)
+        pred_scores = self.lm.cls(hiddens)
         masked_lm_loss = self.cross_entropy(
             pred_scores.view(-1, self.lm.config.vocab_size),
             labels.view(-1)
@@ -187,11 +187,7 @@ class DistilBERTCondenserForPretraining(CondenserForPretraining):
         prediction_logits = self.lm.vocab_layer_norm(prediction_logits)  # (bs, seq_length, dim)
         prediction_logits = self.lm.vocab_projector(prediction_logits)  # (bs, seq_length, vocab_size)
 
-        # pred_scores = self.lm.lm_head(hiddens)
-        masked_lm_loss = self.cross_entropy(
-            prediction_logits.view(-1, self.lm.config.vocab_size),
-            labels.view(-1)
-        )
+        masked_lm_loss = self.lm.mlm_loss_fct(prediction_logits.view(-1, prediction_logits.size(-1)), labels.view(-1))
         return masked_lm_loss
 
 
