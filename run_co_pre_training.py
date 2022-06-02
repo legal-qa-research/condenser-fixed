@@ -14,9 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import logging
-import math
 import os
 import sys
 from datasets import load_dataset
@@ -24,7 +22,7 @@ from datasets import load_dataset
 from arguments import DataTrainingArguments, ModelArguments, \
     CoCondenserPreTrainingArguments as TrainingArguments
 from data import CoCondenserDataset, CoCondenserCollator
-from modeling import CoCondenserForPretraining
+from modeling import CoCondenserForPretraining, RobertaCoCondenserForPretraining
 from trainer import CoCondenserPretrainer as Trainer
 import transformers
 from transformers import (
@@ -42,6 +40,7 @@ MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
 CONDENSER_TYPE_MAP = {
     'bert': CoCondenserForPretraining,
+    'roberta': RobertaCoCondenserForPretraining
 }
 
 
